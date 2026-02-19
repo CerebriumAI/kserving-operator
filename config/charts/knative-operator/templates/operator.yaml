@@ -6364,6 +6364,10 @@ spec:
 {{ toYaml . | indent 8 }}
 {{- end }}
       serviceAccountName: knative-operator
+{{- with .Values.knative_operator.knative_operator.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml . | indent 8 }}
+{{- end }}
 {{- if and .Values.knative_operator.knative_operator.securityContext }}
       securityContext:
 {{ toYaml .Values.knative_operator.knative_operator.securityContext | indent 8 }}
