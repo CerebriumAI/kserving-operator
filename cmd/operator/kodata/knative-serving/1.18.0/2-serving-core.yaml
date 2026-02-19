@@ -8845,6 +8845,139 @@ spec:
   type: ClusterIP
 
 ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: activator-discovery
+  namespace: knative-serving
+  labels:
+    app.kubernetes.io/component: activator-discovery
+    app.kubernetes.io/version: "1.18.0"
+    app.kubernetes.io/name: knative-serving
+spec:
+  selector:
+    matchLabels:
+      app: activator-discovery
+      role: activator-discovery
+  template:
+    metadata:
+      labels:
+        app: activator-discovery
+        role: activator-discovery
+        app.kubernetes.io/component: activator-discovery
+        app.kubernetes.io/name: knative-serving
+        app.kubernetes.io/version: "1.18.0"
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: activator-discovery
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+      serviceAccountName: activator
+      containers:
+        - name: activator
+          # This is the Go import path for the binary that is containerized
+          # and substituted here.
+          image: gcr.io/knative-releases/knative.dev/serving/cmd/activator@sha256:80b2e4bf6df496c692f8e148b3a72afcb88165cb7428e52b788fa53075989655
+          resources:
+            requests:
+              cpu: 300m
+              memory: 60Mi
+            limits:
+              cpu: 1000m
+              memory: 600Mi
+          env:
+            - name: GOGC
+              value: "500"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: SYSTEM_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: CONFIG_LOGGING_NAME
+              value: config-logging
+            - name: CONFIG_OBSERVABILITY_NAME
+              value: config-observability
+            - name: METRICS_DOMAIN
+              value: knative.dev/internal/serving
+            - name: COORDINATION_STREAM_ENABLED
+              value: "true"
+            - name: WRITE_POD_STATE_ENABLED
+              value: "true"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+          ports:
+            - name: metrics
+              containerPort: 9090
+            - name: profiling
+              containerPort: 8008
+            - name: http1
+              containerPort: 8012
+            - name: h2c
+              containerPort: 8013
+          readinessProbe:
+            httpGet:
+              port: 8012
+            periodSeconds: 5
+            failureThreshold: 5
+          livenessProbe:
+            httpGet:
+              port: 8012
+            periodSeconds: 10
+            failureThreshold: 12
+            initialDelaySeconds: 15
+      terminationGracePeriodSeconds: 600
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: activator-discovery
+  namespace: knative-serving
+  labels:
+    app: activator-discovery
+    app.kubernetes.io/component: activator-discovery
+    app.kubernetes.io/version: "1.18.0"
+    app.kubernetes.io/name: knative-serving
+spec:
+  selector:
+    app: activator-discovery
+  ports:
+    - name: http-metrics
+      port: 9090
+      targetPort: 9090
+    - name: http-profiling
+      port: 8008
+      targetPort: 8008
+    - name: http
+      port: 80
+      targetPort: 8012
+    - name: http2
+      port: 81
+      targetPort: 8013
+    - name: https
+      port: 443
+      targetPort: 8112
+  type: ClusterIP
+
+---
 # Copyright 2018 The Knative Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
