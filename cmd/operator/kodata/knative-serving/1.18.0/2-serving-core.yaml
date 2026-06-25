@@ -8958,7 +8958,7 @@ metadata:
     app.kubernetes.io/name: knative-serving
 spec:
   selector:
-    app: activator-discovery
+    app: activator
   ports:
     - name: http-metrics
       port: 9090
