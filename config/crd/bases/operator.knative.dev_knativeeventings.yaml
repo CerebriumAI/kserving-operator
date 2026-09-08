@@ -294,6 +294,10 @@ spec:
                         type: string
                       description: NodeSelector overrides nodeSelector for the deployment.
                       type: object
+                    priorityClassName:
+                      description: PriorityClassName overrides priorityClassName
+                        for the deployment.
+                      type: string
                     readinessProbes:
                       description: ReadinessProbes overrides readiness probes for
                         the containers.
@@ -1373,6 +1377,10 @@ spec:
                         type: string
                       description: NodeSelector overrides nodeSelector for the deployment.
                       type: object
+                    priorityClassName:
+                      description: PriorityClassName overrides priorityClassName
+                        for the deployment.
+                      type: string
                     readinessProbes:
                       description: ReadinessProbes overrides readiness probes for
                         the containers.
