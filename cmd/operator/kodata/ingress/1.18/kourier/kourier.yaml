@@ -469,7 +469,7 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxUnavailable: 1
+      maxUnavailable: 50%
       maxSurge: 100%
   selector:
     matchLabels:
