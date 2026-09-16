@@ -469,7 +469,7 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxUnavailable: 0
+      maxUnavailable: 1
       maxSurge: 100%
   selector:
     matchLabels:
@@ -491,13 +491,16 @@ spec:
             - --base-id 1
             - -c /tmp/config/envoy-bootstrap.yaml
             - --log-level info
-            - --drain-time-s $(DRAIN_TIME_SECONDS)
+            - --drain-time-s $(ENVOY_DRAIN_TIME_SECONDS)
             - --drain-strategy immediate
           command:
             - /usr/local/bin/envoy
           env:
             - name: DRAIN_TIME_SECONDS
               value: "3605"
+            # only the post-SIGTERM exit; the preStop poll owns the long wait
+            - name: ENVOY_DRAIN_TIME_SECONDS
+              value: "30"
           image: docker.io/envoyproxy/envoy:v1.34-latest
           name: kourier-gateway
           ports:
@@ -541,12 +544,24 @@ spec:
                   - /bin/bash
                   - -c
                   - |
-                    (
+                    admin() {
                       exec 3<>/dev/tcp/127.0.0.1/9901
-                      printf 'POST /drain_listeners?graceful HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3
-                      read -r -t 5 resp <&3
-                    ) || true
-                    sleep "$DRAIN_TIME_SECONDS"
+                      printf '%s %s HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' "$1" "$2" >&3
+                      while read -r -t 10 line <&3; do printf '%s\n' "${line%$'\r'}"; done
+                    }
+                    # skip_exit: envoy must not exit on its own timer while we are still polling
+                    ( admin POST '/drain_listeners?graceful&skip_exit' ) >/dev/null 2>&1 || true
+                    deadline=$(( SECONDS + DRAIN_TIME_SECONDS ))
+                    while [ "$SECONDS" -lt "$deadline" ]; do
+                      busy=$( admin GET '/stats?filter=ingress_http.downstream_.*active' 2>/dev/null |
+                        awk -F': ' '
+                          /downstream_rq_active/            { n += $2; seen = 1 }
+                          /downstream_cx_upgrades_active/   { n += $2; seen = 1 }
+                          END { print (seen ? n + 0 : 1) }' )
+                      case "$busy" in ''|*[!0-9]*) busy=1 ;; esac
+                      [ "$busy" -eq 0 ] && break
+                      sleep 5
+                    done
           readinessProbe:
             httpGet:
               httpHeaders:
