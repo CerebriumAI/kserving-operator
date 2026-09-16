@@ -535,8 +535,18 @@ spec:
               mountPath: /tmp/config
           lifecycle:
             preStop:
+              # bash, not sh: the envoy image ships no curl, and dash has no /dev/tcp
               exec:
-                command: ["/bin/sh", "-c", "curl -X POST http://localhost:9901/drain_listeners?graceful; sleep $DRAIN_TIME_SECONDS"]
+                command:
+                  - /bin/bash
+                  - -c
+                  - |
+                    (
+                      exec 3<>/dev/tcp/127.0.0.1/9901
+                      printf 'POST /drain_listeners?graceful HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3
+                      read -r -t 5 resp <&3
+                    ) || true
+                    sleep "$DRAIN_TIME_SECONDS"
           readinessProbe:
             httpGet:
               httpHeaders:
