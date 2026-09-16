@@ -95,6 +95,7 @@ func OverridesTransform(overrides []base.WorkloadOverride, log *zap.SugaredLogge
 			replaceEnv(&override, ps)
 			replaceProbes(&override, ps)
 			replaceHostNetwork(&override, ps)
+			replacePriorityClassName(&override, ps)
 
 			if err := scheme.Scheme.Convert(obj, u, nil); err != nil {
 				return err
@@ -242,5 +243,11 @@ func replaceHostNetwork(override *base.WorkloadOverride, ps *corev1.PodTemplateS
 		if *override.HostNetwork {
 			ps.Spec.DNSPolicy = corev1.DNSClusterFirstWithHostNet
 		}
+	}
+}
+
+func replacePriorityClassName(override *base.WorkloadOverride, ps *corev1.PodTemplateSpec) {
+	if override.PriorityClassName != "" {
+		ps.Spec.PriorityClassName = override.PriorityClassName
 	}
 }

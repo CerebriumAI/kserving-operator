@@ -324,6 +324,10 @@ type WorkloadOverride struct {
 	// When hostNetwork is enabled, this will set dnsPolicy to ClusterFirstWithHostNet automatically for the containers.
 	// +optional
 	HostNetwork *bool `json:"hostNetwork,omitempty"`
+
+	// PriorityClassName overrides priorityClassName for the deployment.
+	// +optional
+	PriorityClassName string `json:"priorityClassName,omitempty"`
 }
 
 // ServiceOverride defines the configurations of the service to override.
