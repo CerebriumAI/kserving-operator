@@ -8810,7 +8810,7 @@ spec:
       # should be at least as large as the upper bound on the Revision's
       # timeoutSeconds property to avoid servicing events disrupting
       # connections.
-      terminationGracePeriodSeconds: 3665
+      terminationGracePeriodSeconds: 7810
 ---
 apiVersion: v1
 kind: Service
