@@ -54,6 +54,7 @@ type expDeployments struct {
 	expLivenessProbe             *corev1.Probe
 	expHostNetwork               *bool
 	expDNSPolicy                 *corev1.DNSPolicy
+	expPriorityClassName         string
 }
 
 type expHorizontalPodAutoscalers struct {
@@ -120,7 +121,8 @@ func TestComponentsTransform(t *testing.T) {
 					PodAffinity:     &corev1.PodAffinity{},
 					PodAntiAffinity: &corev1.PodAntiAffinity{},
 				},
-				HostNetwork: googleapi.Bool(false),
+				HostNetwork:       googleapi.Bool(false),
+				PriorityClassName: "system-cluster-critical",
 			},
 		},
 		globalReplicas: 10,
@@ -149,8 +151,9 @@ func TestComponentsTransform(t *testing.T) {
 				PodAffinity:     &corev1.PodAffinity{},
 				PodAntiAffinity: &corev1.PodAntiAffinity{},
 			},
-			expHostNetwork: googleapi.Bool(false),
-			expDNSPolicy:   nil,
+			expHostNetwork:       googleapi.Bool(false),
+			expDNSPolicy:         nil,
+			expPriorityClassName: "system-cluster-critical",
 		}},
 	}, {
 		name: "no replicas in workload override, use global replicas",
@@ -928,6 +931,9 @@ func TestComponentsTransform(t *testing.T) {
 								}
 								if diff := cmp.Diff(&got.Spec.Template.Spec.DNSPolicy, dnsPolicy); diff != "" {
 									t.Fatalf("Unexpected dnsPolicy: %v", diff)
+								}
+								if diff := cmp.Diff(got.Spec.Template.Spec.PriorityClassName, d.expPriorityClassName); diff != "" {
+									t.Fatalf("Unexpected priorityClassName: %v", diff)
 								}
 							}
 						}
